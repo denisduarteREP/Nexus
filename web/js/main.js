@@ -1084,6 +1084,12 @@ function escapeJs(value) {
 // --- LÓGICA DE AUTO-UPDATE ---
 async function checkForUpdates() {
     const result = await eel.check_for_updates()();
+    
+    if (result.status === 'debug') {
+        writeLog('Verificação de Update: Ignorada (Modo Script/Desenvolvimento).', 'info');
+        return;
+    }
+
     if (result.status === 'update_available') {
         if (confirm(`Nova versão ${result.version} disponível! Deseja atualizar agora?\nO sistema será reiniciado.`)) {
             setLoadingState(true, 'Atualizando sistema...', 50);
@@ -1093,6 +1099,8 @@ async function checkForUpdates() {
                 writeLog(`Erro na atualização: ${updateResult.message}`, 'error');
             }
         }
+    } else {
+        writeLog('Sistema atualizado.', 'success');
     }
 }
 

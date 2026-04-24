@@ -57,7 +57,7 @@ TELEMETRY_WEBHOOK_URL = "https://discord.com/api/webhooks/1497329118818074648/72
 
 # --- CONFIGURAÇÃO DE ATUALIZAÇÃO ---
 # URL de um JSON contendo {"version": "V17.2", "url": "http://servidor/NEXUS_HUB.exe"}
-UPDATE_CHECK_URL = "https://seu-servidor.com/nexus_update.json" 
+UPDATE_CHECK_URL = "https://raw.githubusercontent.com/denisduarteREP/Nexus/main/nexus_update.json" 
 
 def send_telemetry_startup():
     """Envia um sinal de vida para um Webhook centralizado quando o app inicia."""
@@ -125,11 +125,11 @@ def start_update_process(download_url):
         bat_path = os.path.join(os.path.dirname(exe_path), "nexus_updater.bat")
         with open(bat_path, "w") as f:
             f.write(f'@echo off\n')
-            f.write(f'timeout /t 2 /nobreak > nul\n')
+            f.write(f'timeout /t 3 /nobreak > nul\n')
             f.write(f'del "{exe_path}"\n')
             f.write(f'move "{temp_exe}" "{exe_path}"\n')
             f.write(f'start "" "{exe_path}"\n')
-            f.write(f'del "%~f0"\n') # Deleta o próprio .bat
+            f.write(f'(goto) 2>nul & del "%~f0"\n') # Deleta o próprio .bat de forma mais segura
 
         eel.js_log("Aplicação será reiniciada para aplicar atualização.", "warning")()
         
