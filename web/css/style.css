@@ -1,0 +1,1218 @@
+:root {
+    /* Variaveis de cores para o Tema Escuro (Padrao) */
+    --bg-color: #11161c;
+    --sidebar-bg: rgba(11, 18, 24, 0.9); /* Fundo da barra lateral com transparencia */
+    --card-bg: rgba(24, 33, 42, 0.78);   /* Fundo dos cards (Glassmorphism) */
+    --accent-color: #3aa0ff;             /* Cor de destaque principal */
+    --accent-strong: #1976d2;            /* Variacao mais forte do azul principal */
+    --online-color: #3cbf7a;
+    --offline-color: #d9534f;
+    --warning-color: #d48b1f;
+    --text-color: #eff5fb;               /* Cor do texto principal */
+    --text-secondary: #9fb0c1;           /* Cor do texto secundario (subtitulos) */
+    --border-color: rgba(255, 255, 255, 0.1);
+    --log-bg: rgba(8, 12, 18, 0.72);
+    --gradient-start: #1b2c3a;           /* Inicio do degrade de fundo */
+    --gradient-mid: #13202b;             /* Meio do degrade para dar profundidade */
+    --gradient-end: #0e1318;             /* Fim do degrade de fundo */
+    --shadow-color: rgba(0, 0, 0, 0.28);
+}
+
+/* Sobrescreve as variaveis quando o atributo data-theme="light" esta ativo */
+[data-theme="light"] {
+    --bg-color: #eef3f8;
+    --sidebar-bg: rgba(245, 249, 252, 0.92);
+    --card-bg: rgba(255, 255, 255, 0.82);
+    --accent-color: #006bb8;
+    --accent-strong: #00508a;
+    --online-color: #177c45;
+    --offline-color: #b23b38;
+    --warning-color: #a5680c;
+    --text-color: #17202a;
+    --text-secondary: #5e6a75;
+    --border-color: rgba(20, 32, 44, 0.1);
+    --log-bg: rgba(255, 255, 255, 0.72);
+    --gradient-start: #f8fbff;
+    --gradient-mid: #eef4fa;
+    --gradient-end: #e5edf5;
+    --shadow-color: rgba(38, 57, 77, 0.12);
+}
+
+/* Reset global e definicao de fonte padrao Windows 11 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI Variable', 'Segoe UI', 'SF Pro Display', sans-serif;
+    /* Transicao suave para quando o tema for alterado */
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+button,
+input,
+select {
+    font: inherit;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    min-height: 100vh;
+    display: flex;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* Efeito de fundo "Mica" (gradiente radial atras de camadas transparentes) */
+.mica-background {
+    position: fixed;
+    inset: 0;
+    background:
+        radial-gradient(circle at 15% 20%, rgba(58, 160, 255, 0.16), transparent 28%),
+        radial-gradient(circle at 85% 15%, rgba(60, 191, 122, 0.14), transparent 24%),
+        linear-gradient(135deg, var(--gradient-start), var(--gradient-mid) 45%, var(--gradient-end));
+    z-index: -1;
+}
+
+/* Estilizacao da Barra Lateral */
+.sidebar {
+    width: 290px;
+    background: var(--sidebar-bg);
+    backdrop-filter: blur(24px); /* Efeito de vidro jateado */
+    border-right: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    padding: 28px 0;
+    max-height: 100vh;
+    overflow-y: auto;
+}
+
+/* Container do Logo (Icone + Titulo + Subtitulo) */
+.app-logo {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 0 28px;
+    margin-bottom: 34px;
+}
+
+/* Icone ao lado do nome do app */
+.logo-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 14px;
+    display: grid;
+    place-items: center;
+    background: linear-gradient(135deg, var(--accent-color), #7bc3ff);
+    color: white;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+}
+
+/* Nome principal: NEXUS PRO */
+.app-logo span {
+    display: block; /* Forca quebra de linha para o subtitulo */
+    font-weight: 800;
+    font-size: 20px;
+    letter-spacing: 0.04em;
+    line-height: 1.2;
+}
+
+/* Subtitulo abaixo do nome do app */
+.logo-subtitle {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    margin-top: 2px;
+    opacity: 0.9;
+    display: block;
+}
+
+/* Navegacao da Sidebar */
+nav {
+    flex-grow: 1; /* Faz o menu ocupar o espaco disponivel */
+    padding: 0 10px;
+}
+
+/* Botoes do Menu Lateral */
+.nav-btn {
+    width: 100%;
+    padding: 13px 18px;
+    background: transparent;
+    border: none;
+    color: var(--text-color);
+    text-align: left;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 12px;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: relative;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Indicador vertical de aba ativa */
+.nav-btn::before {
+    content: '';
+    position: absolute;
+    left: -10px;
+    top: 50%;
+    transform: translateY(-50%) scaleY(0);
+    width: 4px;
+    height: 20px;
+    background: var(--accent-color);
+    border-radius: 0 4px 4px 0;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nav-btn:hover {
+    background: rgba(255, 255, 255, 0.06);
+    padding-left: 22px;
+}
+
+.nav-btn svg {
+    width: 20px;
+    height: 20px;
+    opacity: 0.7;
+    transition: all 0.3s ease;
+}
+
+/* Estado ativo/clicado do menu */
+.nav-btn.active {
+    background: rgba(58, 160, 255, 0.14);
+    color: var(--accent-color);
+}
+
+.nav-btn.active::before {
+    transform: translateY(-50%) scaleY(1);
+    left: 0;
+}
+
+.nav-btn.active svg {
+    opacity: 1;
+    color: var(--accent-color);
+}
+
+.nav-btn.danger.active,
+.nav-btn.danger:hover {
+    color: var(--offline-color);
+}
+
+/* Rodape da sidebar com o botao de trocar tema */
+.theme-toggle,
+.sidebar-section {
+    padding: 18px 28px;
+    border-top: 1px solid var(--border-color);
+}
+
+.toggle-btn {
+    width: 100%;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    padding: 11px 14px;
+    border-radius: 14px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.counter {
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+
+.counter + .counter {
+    margin-top: 8px;
+}
+
+.counter.online {
+    color: var(--online-color);
+}
+
+.counter.offline {
+    color: var(--offline-color);
+}
+
+/* Area de conteudo principal a direita */
+.content-area {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    padding: 34px 42px;
+    overflow-y: visible;
+    overflow-x: hidden;
+}
+
+.main-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 28px;
+    gap: 16px;
+}
+
+.eyebrow {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+}
+
+.main-header h1 {
+    font-size: 34px;
+    font-weight: 800;
+}
+
+.header-actions {
+    display: flex;
+    gap: 12px;
+}
+
+/* Botao principal de acao */
+.btn-primary,
+.btn-secondary {
+    border: none;
+    padding: 11px 18px;
+    border-radius: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--accent-color), var(--accent-strong));
+    color: white;
+    box-shadow: 0 10px 24px rgba(25, 118, 210, 0.22);
+}
+
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+}
+
+.btn-primary:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.success-btn {
+    background: rgba(60, 191, 122, 0.14);
+    color: var(--online-color);
+}
+
+.warning-btn {
+    background: linear-gradient(135deg, #d9a441, var(--warning-color));
+}
+
+.danger-btn {
+    background: linear-gradient(135deg, #df5d54, var(--offline-color));
+}
+
+.full-btn,
+.wide-danger {
+    width: 100%;
+}
+
+/* Grid de cards responsivo */
+.host-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 18px;
+}
+
+.monitor-toolbar {
+    display: grid;
+    gap: 16px;
+    margin-bottom: 22px;
+}
+
+.monitor-filters {
+    display: grid;
+    grid-template-columns: minmax(240px, 1fr) repeat(4, auto);
+    gap: 12px;
+    align-items: center;
+}
+
+.active-filter-btn {
+    background: rgba(58, 160, 255, 0.14);
+    color: var(--accent-color);
+    box-shadow: inset 0 0 0 1px rgba(58, 160, 255, 0.2);
+}
+
+.monitor-group-section {
+    display: grid;
+    gap: 12px;
+}
+
+.monitor-group-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.monitor-group-title {
+    font-size: 18px;
+    font-weight: 800;
+}
+
+.monitor-group-meta {
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+
+.monitor-card {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+    min-height: 210px;
+}
+
+.monitor-card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+}
+
+.monitor-card-title {
+    display: grid;
+    gap: 6px;
+}
+
+.monitor-hostname {
+    font-size: 22px;
+    font-weight: 800;
+    line-height: 1.2;
+    word-break: break-word;
+}
+
+.monitor-group-chip {
+    display: inline-flex;
+    width: fit-content;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(58, 160, 255, 0.1);
+    color: var(--accent-color);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.monitor-status-stack {
+    display: grid;
+    gap: 8px;
+    justify-items: end;
+}
+
+.monitor-meta {
+    display: grid;
+    gap: 8px;
+}
+
+.monitor-meta-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+
+.monitor-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.monitor-actions .btn-secondary,
+.monitor-actions .btn-primary {
+    padding: 8px 12px;
+    border-radius: 10px;
+    font-size: 12px;
+}
+
+/* Cards com efeito de vidro (Glassmorphism) */
+.glass-card {
+    background: var(--card-bg);
+    backdrop-filter: blur(18px);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    padding: 22px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 20px 38px var(--shadow-color);
+}
+
+.glass-card:hover {
+    transform: scale(1.02);
+}
+
+.stack-card {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 18px;
+}
+
+.form-card h2,
+.preview-card h3,
+.search-heading h2 {
+    font-size: 24px;
+    font-weight: 800;
+}
+
+.section-tag {
+    margin-bottom: 6px;
+    color: var(--accent-color);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-weight: 800;
+}
+
+.section-tag.critical {
+    color: var(--offline-color);
+}
+
+.section-copy {
+    color: var(--text-secondary);
+    margin-top: 8px;
+    max-width: 640px;
+    line-height: 1.5;
+}
+
+.inline-form {
+    display: grid;
+    gap: 12px;
+    width: 100%;
+}
+
+.three-columns {
+    grid-template-columns: 1fr 1.8fr auto;
+}
+
+.four-columns {
+    grid-template-columns: 1fr 1fr 1fr auto;
+}
+
+.wide-field {
+    min-width: 0;
+}
+
+.stack-fields {
+    display: grid;
+    gap: 12px;
+}
+
+/* Selos de status (Online/Offline) */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.status-badge.online { background: rgba(60, 191, 122, 0.14); color: var(--online-color); }
+.status-badge.offline { background: rgba(217, 83, 79, 0.14); color: var(--offline-color); }
+
+.host-icon {
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    color: var(--text-secondary);
+}
+
+/* Secao de Console de Logs no final da pagina */
+.log-footer {
+    margin-top: 28px;
+    background: var(--log-bg);
+    border-radius: 20px;
+    padding: 18px 20px;
+    border: 1px solid var(--border-color);
+}
+
+.log-header {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+    font-weight: 800;
+}
+
+.log-console {
+    height: 170px;
+    overflow-y: auto;
+    font-family: 'Consolas', 'Cascadia Code', monospace; /* Fonte estilo terminal */
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.log-success {
+    color: var(--online-color);
+}
+
+.log-error {
+    color: var(--offline-color);
+}
+
+/* Controle de abas: esconde o conteudo por padrao */
+.tab-content {
+    display: none !important;
+    flex-direction: column;
+    animation: fadeIn 0.28s ease; /* Efeito de entrada suave */
+}
+
+/* Mostra apenas a aba que tiver a classe .active */
+.tab-content.active {
+    display: flex !important;
+}
+
+/* Animacao de surgimento das abas */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Estilo de Input inspirado no Windows 11 */
+.win-input {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 12px 14px;
+    color: var(--text-color);
+    outline: none;
+    font-size: 14px;
+    width: 100%;
+}
+
+/* Destaque visual do input ao focar */
+.win-input:focus {
+    border-color: rgba(58, 160, 255, 0.55);
+    box-shadow: 0 0 0 3px rgba(58, 160, 255, 0.15);
+}
+
+.centered-input {
+    width: min(460px, 100%);
+    text-align: center;
+    font-size: 17px;
+}
+
+.list-container,
+.preview-list,
+.store-results {
+    width: 100%;
+}
+
+.full-width {
+    width: 100%;
+}
+
+.result-row {
+    margin-bottom: 10px;
+}
+
+/* Estrutura da tela de lojas/importacao */
+.search-layout {
+    display: grid;
+}
+
+/* Card principal da aba de lojas */
+.search-main-card {
+    gap: 20px;
+}
+
+/* Cabecalho das secoes com titulo e bloco de estatisticas */
+.search-heading {
+    display: flex;
+    justify-content: space-between;
+    gap: 18px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+}
+
+.stats-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+/* Blocos pequenos usados para indicadores numericos */
+.mini-stat {
+    min-width: 150px;
+    padding: 14px 16px;
+    border-radius: 16px;
+    border: 1px solid var(--border-color);
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.mini-stat.danger strong {
+    color: var(--offline-color);
+}
+
+.mini-stat-label {
+    display: block;
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.mini-stat strong {
+    font-size: 26px;
+}
+
+.search-toolbar {
+    display: grid;
+    grid-template-columns: minmax(240px, 1fr) repeat(3, auto);
+    gap: 12px;
+    align-items: center;
+}
+
+.search-input {
+    min-width: 0;
+}
+
+/* Painel que exibe o estado atual da importacao */
+.csv-status-panel {
+    display: flex;
+    justify-content: space-between;
+    gap: 18px;
+    align-items: center;
+    background: rgba(58, 160, 255, 0.08);
+    border: 1px solid rgba(58, 160, 255, 0.14);
+    padding: 16px 18px;
+    border-radius: 16px;
+}
+
+.csv-status-panel p {
+    color: var(--text-secondary);
+    margin-top: 6px;
+    line-height: 1.5;
+}
+
+.status-title {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-weight: 800;
+    color: var(--accent-color);
+}
+
+.preview-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+/* Card base reaproveitado nas areas de preview e apoio visual */
+.preview-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border-color);
+    border-radius: 18px;
+    padding: 18px;
+}
+
+.preview-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.pill {
+    min-width: 36px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    text-align: center;
+    font-weight: 800;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.pill.neutral {
+    color: var(--accent-color);
+}
+
+.pill.danger {
+    background: rgba(217, 83, 79, 0.16);
+    color: var(--offline-color);
+}
+
+.preview-list {
+    max-height: 280px;
+    overflow-y: auto;
+    display: grid;
+    gap: 10px;
+}
+
+/* Linha individual do preview de importacao */
+.preview-row {
+    display: grid;
+    gap: 4px;
+    padding: 12px 14px;
+    border-radius: 14px;
+    border: 1px solid var(--border-color);
+}
+
+.preview-row.success {
+    background: rgba(60, 191, 122, 0.08);
+}
+
+.preview-row.danger {
+    background: rgba(217, 83, 79, 0.08);
+}
+
+.preview-row span,
+.preview-row small {
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.store-table {
+    display: grid;
+    gap: 10px;
+}
+
+/* Linha do painel administrativo de lojas */
+.store-row {
+    display: grid;
+    grid-template-columns: 110px minmax(220px, 1.2fr) minmax(160px, 0.8fr) minmax(240px, auto);
+    gap: 16px;
+    align-items: center;
+    padding: 14px 16px;
+    border-radius: 16px;
+    border: 1px solid var(--border-color);
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.store-head {
+    background: transparent;
+    border-style: dashed;
+    color: var(--text-secondary);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 800;
+}
+
+.action-group {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+}
+
+.small-btn {
+    padding: 8px 12px;
+    border-radius: 10px;
+    font-size: 12px;
+}
+
+.empty-state,
+.empty-panel {
+    display: grid;
+    place-items: center;
+    text-align: center;
+    color: var(--text-secondary);
+    min-height: 96px;
+}
+
+.critical-card {
+    border: 1px solid rgba(217, 83, 79, 0.3);
+}
+
+
+/* Layout dedicado para os resultados da aba Buscar loja */
+.lookup-grid {
+    display: grid;
+    width: 100%;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 18px;
+    align-content: start;
+    align-items: stretch;
+}
+
+.lookup-card {
+    display: grid;
+    gap: 10px;
+    min-height: 100%;
+    align-items: stretch;
+}
+
+.lookup-title {
+    font-size: 24px;
+    font-weight: 800;
+    line-height: 1.25;
+    text-align: left;
+}
+
+.lookup-ip-highlight {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--accent-color);
+    text-align: center;
+    font-family: 'Consolas', 'Cascadia Code', monospace;
+    letter-spacing: 0.04em;
+    padding: 8px 0;
+}
+
+
+.lookup-meta {
+    color: var(--text-secondary);
+    font-size: 13px;
+    text-align: center;
+}
+
+.lookup-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 6px;
+}
+
+/* Ajustes responsivos para telas menores */
+@media (max-width: 1180px) {
+    .monitor-filters,
+    .search-toolbar,
+    .manual-store-form,
+    .three-columns,
+    .four-columns,
+    .preview-grid,
+    .store-row,
+    .group-visual-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .action-group {
+        justify-content: flex-start;
+    }
+
+    .lookup-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 920px) {
+    body {
+        flex-direction: column;
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+
+    .sidebar {
+        width: 100%;
+        max-height: none;
+        overflow-y: visible;
+    }
+
+    .content-area {
+        padding: 24px;
+    }
+
+    .main-header,
+    .search-heading,
+    .csv-status-panel {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}
+
+
+/* Lista visual de grupos cadastrados */
+.group-list-grid {
+    display: grid;
+    gap: 12px;
+}
+
+.group-dashboard {
+    display: grid;
+    gap: 18px;
+}
+
+/* Divide a visualizacao da aba de grupos em lista e resumo */
+.group-visual-layout {
+    display: grid;
+    grid-template-columns: minmax(320px, 1.1fr) minmax(280px, 0.9fr);
+    gap: 16px;
+    align-items: start;
+}
+
+.group-panel {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border-color);
+    border-radius: 18px;
+    padding: 18px;
+    display: grid;
+    gap: 14px;
+}
+
+.group-item-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 16px;
+    display: grid;
+    gap: 14px;
+}
+
+.selectable-group-card {
+    cursor: pointer;
+}
+
+.selectable-group-card.active {
+    border-color: rgba(58, 160, 255, 0.32);
+    box-shadow: inset 0 0 0 1px rgba(58, 160, 255, 0.16);
+    background: rgba(58, 160, 255, 0.08);
+}
+
+.group-item-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+}
+
+.group-item-title {
+    font-size: 16px;
+    font-weight: 800;
+}
+
+.group-item-count {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+
+.group-item-hosts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.group-detail {
+    width: 100%;
+}
+
+.group-detail-card {
+    display: grid;
+    gap: 16px;
+}
+
+/* Linha superior do resumo do grupo selecionado */
+.group-detail-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.group-detail-title {
+    font-size: 22px;
+    font-weight: 800;
+}
+
+.group-detail-hosts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: flex-start;
+    min-height: 72px;
+}
+
+.group-shortcuts {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.host-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(58, 160, 255, 0.12);
+    color: var(--text-color);
+    font-size: 12px;
+    border: 1px solid rgba(58, 160, 255, 0.16);
+}
+
+.danger-outline-btn {
+    color: var(--offline-color);
+    border-color: rgba(217, 83, 79, 0.28);
+    background: rgba(217, 83, 79, 0.08);
+}
+
+
+.store-admin-card {
+    margin-top: 8px;
+}
+
+
+.compact-copy {
+    margin-top: -4px;
+    margin-bottom: 4px;
+}
+
+.store-admin-card .store-results {
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+
+.csv-file-summary {
+    color: var(--text-secondary);
+    font-size: 13px;
+    margin-top: -4px;
+}
+
+/* Caixa de apoio para cadastro manual de loja */
+.manual-store-panel {
+    display: grid;
+    gap: 14px;
+    padding: 18px;
+    border-radius: 18px;
+    border: 1px solid var(--border-color);
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.manual-store-form {
+    display: grid;
+    grid-template-columns: minmax(120px, 0.6fr) minmax(220px, 1.2fr) minmax(180px, 0.8fr) auto;
+    gap: 12px;
+    align-items: center;
+}
+
+/* Barra de progresso visual usada nas operacoes de importacao */
+.loading-panel {
+    display: grid;
+    gap: 10px;
+    padding: 14px 16px;
+    border-radius: 16px;
+    border: 1px solid rgba(58, 160, 255, 0.16);
+    background: rgba(58, 160, 255, 0.08);
+}
+
+.loading-panel.hidden {
+    display: none;
+}
+
+.loading-text {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent-color);
+}
+
+.loading-bar-track {
+    width: 100%;
+    height: 10px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    overflow: hidden;
+}
+
+.loading-bar-fill {
+    width: 0%;
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--accent-color), #7bc3ff, var(--accent-color));
+    background-size: 200% 100%;
+    animation: loadingPulse 1.2s linear infinite;
+    transition: width 0.35s ease;
+}
+
+@keyframes loadingPulse {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 200% 50%; }
+}
+
+/* Estilo da Scrollbar (estilo Windows 11) */
+::-webkit-scrollbar {
+    width: 6px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-color);
+}
+
+/* Estilo para a Tabela de Lojas na Busca */
+.win-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.win-table th, .win-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.win-table th {
+    color: var(--text-secondary);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.win-table td {
+    font-size: 14px;
+    color: var(--text-color);
+}
+
+/* Botões de Ação dentro da Tabela */
+.btn-small {
+    padding: 5px 10px;
+    font-size: 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    background: rgba(58, 160, 255, 0.1);
+    color: var(--accent-color);
+    border: 1px solid rgba(58, 160, 255, 0.2);
+    transition: 0.2s;
+}
+
+.btn-small:hover {
+    background: var(--accent-color);
+    color: white;
+}
+
+.btn-small.danger-outline-btn {
+    color: var(--offline-color);
+    border-color: rgba(217, 83, 79, 0.2);
+    background: rgba(217, 83, 79, 0.05);
+}
+
+.btn-small.danger-outline-btn:hover {
+    background: var(--offline-color);
+    color: white;
+}

@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="pt-br" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus Hub Pro - Windows 11 Edition</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script type="text/javascript" src="/eel.js"></script>
+</head>
+<body>
+    <div class="mica-background"></div>
+
+    <div class="sidebar">
+        <div class="app-logo">
+            <div class="logo-icon">N</div>
+            <div>
+                <span>NEXUS PRO</span>
+                <p class="logo-subtitle">Onde a magia acontece</p>
+            </div>
+        </div>
+        <nav>
+            <button class="nav-btn active" onclick="switchTab('monitoring', event)">Monitoramento</button>
+            <button class="nav-btn" onclick="switchTab('groups', event)">Grupos</button>
+            <button class="nav-btn" onclick="switchTab('inventory', event)">Inventario</button>
+            <button class="nav-btn" onclick="switchTab('transfer', event)">Transferencia</button>
+            <button class="nav-btn" onclick="switchTab('schedule', event)">Agendamento</button>
+            <button class="nav-btn" onclick="switchTab('search', event)">Lojas</button>
+            <button class="nav-btn" onclick="switchTab('lookup', event)">Buscar loja</button>
+            <button class="nav-btn danger" onclick="switchTab('shutdown', event)">Shutdown</button>
+        </nav>
+
+        <div class="theme-toggle">
+            <button class="toggle-btn" onclick="toggleTheme()">
+                <span id="theme-icon">Lua</span>
+                <span id="theme-text">Modo Escuro</span>
+            </button>
+        </div>
+
+        <div class="status-counters sidebar-section">
+            <div class="counter online">ONLINE: <span id="count-online">0</span></div>
+            <div class="counter offline">OFFLINE: <span id="count-offline">0</span></div>
+        </div>
+    </div>
+
+    <main class="content-area">
+        <header class="main-header">
+            <div>
+                <p class="eyebrow">Central NEXUS</p>
+                <h1 id="tab-title">Monitoramento de Rede</h1>
+            </div>
+            <div class="header-actions">
+                <button class="btn-primary" onclick="refreshStatus()">Sincronizar Agora</button>
+            </div>
+        </header>
+
+        <section id="monitoring-tab" class="tab-content active">
+            <div id="host-grid" class="host-grid"></div>
+        </section>
+
+        <section id="groups-tab" class="tab-content">
+            <div class="glass-card form-card stack-card">
+                <div>
+                    <p class="section-tag">Cadastro</p>
+                    <h2>Gerenciar grupos</h2>
+                </div>
+                <div class="inline-form three-columns">
+                    <input type="text" id="group-name" placeholder="Nome do Grupo" class="win-input">
+                    <input type="text" id="group-hosts" placeholder="IPs separados por virgula" class="win-input wide-field">
+                    <button class="btn-primary" onclick="saveGroup()">Salvar Grupo</button>
+                </div>
+                <div class="section-copy">Grupos salvos aparecem abaixo com os hosts cadastrados e a opcao de remocao.</div>
+                <div id="group-list" class="list-container full-width"></div>
+            </div>
+        </section>
+
+        <section id="inventory-tab" class="tab-content">
+            <div class="glass-card form-card stack-card">
+                <div>
+                    <p class="section-tag">Coleta</p>
+                    <h2>Inventario de hardware</h2>
+                </div>
+                <div class="inline-form three-columns">
+                    <input type="text" id="inv-target" placeholder="IP ou Grupo" class="win-input wide-field">
+                    <button class="btn-primary" onclick="runInventory()">Identificar Hardware</button>
+                    <button class="btn-secondary success-btn" onclick="exportInventory()">Exportar</button>
+                </div>
+                <div id="inventory-results" class="list-container full-width"></div>
+            </div>
+        </section>
+
+        <section id="transfer-tab" class="tab-content">
+            <div class="glass-card form-card stack-card">
+                <div>
+                    <p class="section-tag">Distribuicao</p>
+                    <h2>Transferencia de arquivos</h2>
+                </div>
+                <div class="stack-fields">
+                    <input type="text" id="tra-target" placeholder="IP ou Grupo" class="win-input">
+                    <input type="text" id="tra-local" placeholder="Pasta Local (C:/...)" class="win-input">
+                    <input type="text" id="tra-remote" placeholder="Pasta Remota (/home/...)" class="win-input">
+                </div>
+                <button class="btn-primary full-btn" onclick="runTransfer()">Iniciar Transferencia em Massa</button>
+            </div>
+        </section>
+
+        <section id="schedule-tab" class="tab-content">
+            <div class="glass-card form-card stack-card">
+                <div>
+                    <p class="section-tag">Agenda</p>
+                    <h2>Agendamento de tarefas</h2>
+                </div>
+                <div class="inline-form four-columns">
+                    <select id="age-type" class="win-input">
+                        <option value="shutdown">Shutdown</option>
+                        <option value="inventory">Inventario</option>
+                        <option value="transfer">Transferencia</option>
+                    </select>
+                    <input type="text" id="age-target" placeholder="Alvo" class="win-input">
+                    <input type="text" id="age-time" placeholder="YYYY-MM-DD HH:MM" class="win-input">
+                    <button class="btn-primary warning-btn" onclick="addSchedule()">Agendar</button>
+                </div>
+                <div id="schedule-list" class="list-container full-width"></div>
+            </div>
+        </section>
+
+        <section id="search-tab" class="tab-content">
+            <div class="search-layout">
+                <div class="glass-card stack-card search-main-card">
+                    <div class="search-heading">
+                        <div>
+                            <p class="section-tag">Base de lojas</p>
+                            <h2>Importar e administrar base</h2>
+                            <p class="section-copy">Use esta area para carregar um CSV validado, revisar o preview e limpar a base quando for necessario.</p>
+                        </div>
+                        <div class="stats-row">
+                            <div class="mini-stat">
+                                <span class="mini-stat-label">Lojas cadastradas</span>
+                                <strong id="store-count">0</strong>
+                            </div>
+                            <div class="mini-stat">
+                                <span class="mini-stat-label">Prontas para importar</span>
+                                <strong id="preview-ready-count">0</strong>
+                            </div>
+                            <div class="mini-stat danger">
+                                <span class="mini-stat-label">Rejeitadas</span>
+                                <strong id="preview-rejected-count">0</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="search-toolbar">
+                        <button class="btn-secondary" onclick="refreshStoreDashboard()">Atualizar painel</button>
+                        <button class="btn-secondary" onclick="downloadCsvTemplate()">Baixar Modelo</button>
+                        <button class="btn-primary" onclick="triggerCsvImport()">Importar CSV</button>
+                        <button class="btn-secondary danger-btn" onclick="clearLojasBase()">Excluir Base</button>
+                        
+                    </div>
+
+                    <div class="csv-file-summary" id="csv-file-summary">Nenhum arquivo CSV carregado.</div>
+
+                    <div class="loading-panel hidden" id="loading-panel" aria-live="polite">
+                        <div class="loading-text" id="loading-text">Preparando importacao...</div>
+                        <div class="loading-bar-track">
+                            <div class="loading-bar-fill" id="loading-bar-fill"></div>
+                        </div>
+                    </div>
+
+                    <div class="csv-status-panel" id="csv-status-panel">
+                        <button class="btn-primary" id="confirm-import-btn" onclick="confirmCsvImport()" disabled>Confirmar Importacao</button>
+                    </div>
+
+                    <div class="preview-card store-admin-card">
+                        <div class="preview-card-header">
+                            <h3>Bancos cadastrados</h3>
+                            <span class="pill neutral" id="registered-stores-badge">0</span>
+                        </div>
+                        <div class="section-copy compact-copy">Base atualmente cadastrada no sistema. Voce pode editar ou excluir registros individualmente.</div>
+                        <div id="store-admin-results" class="store-results empty-state">Nenhuma loja cadastrada.</div>
+                    </div>
+
+                    <div class="preview-grid">
+                        <div class="preview-card">
+                            <div class="preview-card-header">
+                                <h3>Prontas para importar</h3>
+                                <span id="preview-ready-badge" class="pill neutral">0</span>
+                            </div>
+                            <div id="preview-ready-list" class="preview-list empty-state">Nenhum arquivo analisado ainda.</div>
+                        </div>
+                        <div class="preview-card">
+                            <div class="preview-card-header">
+                                <h3>Linhas rejeitadas</h3>
+                                <span id="preview-rejected-badge" class="pill danger">0</span>
+                            </div>
+                            <div id="preview-rejected-list" class="preview-list empty-state">Nenhuma rejeicao por enquanto.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="lookup-tab" class="tab-content">
+            <div class="search-layout">
+                <div class="glass-card stack-card search-main-card">
+                    <div class="search-heading">
+                        <div>
+                            <p class="section-tag">Consulta</p>
+                            <h2>Buscar loja</h2>
+                            <p class="section-copy">Pesquise por ID, nome ou IP para localizar a loja e copiar rapidamente o endereco desejado.</p>
+                        </div>
+                    </div>
+
+                    <div class="search-toolbar">
+                        <input type="text" id="lookup-query" placeholder="Buscar por ID, Nome ou IP" class="win-input search-input" onkeyup="searchLojasLookup()">
+                        <button class="btn-secondary" onclick="searchLojasLookup()">Buscar</button>
+                        <button class="btn-secondary" onclick="loadLookupStores()">Ver Tudo</button>
+                    </div>
+
+                    <div id="lookup-results" class="store-results empty-state">Use a busca para localizar lojas cadastradas.</div>
+                </div>
+            </div>
+        </section>
+
+        <section id="shutdown-tab" class="tab-content">
+            <div class="glass-card critical-card stack-card">
+                <div>
+                    <p class="section-tag critical">Area critica</p>
+                    <h2>Desligamento remoto</h2>
+                </div>
+                <input type="text" id="shu-target" placeholder="IP ou Grupo" class="win-input centered-input">
+                <button class="btn-primary danger-btn wide-danger" onclick="runShutdown()">DESLIGAR SERVIDORES AGORA</button>
+            </div>
+        </section>
+
+        <footer class="log-footer">
+            <div class="log-header">LOG DE ATIVIDADES</div>
+            <div id="log-console" class="log-console"></div>
+        </footer>
+    </main>
+
+    <script src="js/main.js"></script>
+</body>
+</html>

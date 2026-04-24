@@ -1,0 +1,670 @@
+// --- GERENCIAMENTO DE TEMA ---
+const tabTitles = {
+    monitoring: 'Monitoramento de Rede',
+    groups: 'Gerenciamento de Grupos',
+    inventory: 'Inventario de Hardware',
+    transfer: 'Transferencia de Arquivos',
+    schedule: 'Agendamento de Tarefas',
+    search: 'Base de Lojas',
+    lookup: 'Buscar Loja',
+    shutdown: 'Controle de Energia'
+};
+
+const searchState = {
+    allStores: [],
+    lookupStores: [],
+    pendingImport: [],
+    selectedCsvName: null
+};
+
+function toggleTheme() {
+    const html = document.documentElement;
+    const currentTheme = html.getAttribute('data-theme');
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', newTheme);
+    localStorage.setItem('nexus-theme', newTheme);
+    updateThemeUI(newTheme);
+    writeLog(`Tema alterado para: ${newTheme.toUpperCase()}`, 'info');
+}
+
+function updateThemeUI(theme) {
+    const icon = document.getElementById('theme-icon');
+    const text = document.getElementById('theme-text');
+    if (theme === 'dark') {
+        icon.innerText = 'Lua';
+        text.innerText = 'Modo Escuro';
+    } else {
+        icon.innerText = 'Sol';
+        text.innerText = 'Modo Claro';
+    }
+}
+
+const savedTheme = localStorage.getItem('nexus-theme') || 'dark';
+document.documentElement.setAttribute('data-theme', savedTheme);
+window.addEventListener('DOMContentLoaded', () => updateThemeUI(savedTheme));
+
+function switchTab(tabId, event) {
+    document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+    event.currentTarget.classList.add('active');
+    document.getElementById(`${tabId}-tab`).classList.add('active');
+    document.getElementById('tab-title').innerText = tabTitles[tabId];
+
+    if (tabId === 'groups') {
+        loadGroups();
+    }
+
+    if (tabId === 'search') {
+        refreshStoreDashboard();
+    }
+
+    if (tabId === 'lookup') {
+        loadLookupStores();
+    }
+}
+
+function writeLog(message, type = 'info') {
+    const consoleElement = document.getElementById('log-console');
+    const time = new Date().toLocaleTimeString();
+    const entry = document.createElement('div');
+    entry.className = 'log-entry';
+    let colorClass = '';
+    if (type === 'success') colorClass = 'log-success';
+    if (type === 'error') colorClass = 'log-error';
+    entry.innerHTML = `<span class="log-time">[${time}]</span> <span class="${colorClass}">${message}</span>`;
+    consoleElement.appendChild(entry);
+    consoleElement.scrollTop = consoleElement.scrollHeight;
+}
+
+eel.expose(js_log);
+function js_log(msg, type) { writeLog(msg, type); }
+
+eel.expose(js_alert);
+function js_alert(msg) { alert(msg); }
+
+function setLoadingState(isLoading, message = 'Processando...', progress = 30) {
+    const panel = document.getElementById('loading-panel');
+    const text = document.getElementById('loading-text');
+    const fill = document.getElementById('loading-bar-fill');
+
+    if (!panel || !text || !fill) {
+        return;
+    }
+
+    if (isLoading) {
+        panel.classList.remove('hidden');
+        text.innerText = message;
+        fill.style.width = `${progress}%`;
+    } else {
+        text.innerText = message;
+        fill.style.width = '100%';
+        setTimeout(() => {
+            panel.classList.add('hidden');
+            fill.style.width = '0%';
+        }, 700);
+    }
+}
+
+function updateCsvFileSummary(message) {
+    const summary = document.getElementById('csv-file-summary');
+    if (summary) {
+        summary.innerText = message;
+    }
+}
+
+async function refreshStatus() {
+    writeLog('Sincronizando status dos servidores...', 'info');
+    const hosts = await eel.get_all_hosts()();
+    renderCards(hosts);
+}
+
+function renderCards(hosts) {
+    const grid = document.getElementById('host-grid');
+    grid.innerHTML = '';
+
+    if (hosts.length === 0) {
+        grid.innerHTML = '<div class="glass-card empty-panel">Nenhum host cadastrado ainda.</div>';
+        updateCounters();
+        return;
+    }
+
+    hosts.forEach(host => {
+        const card = document.createElement('div');
+        card.className = 'glass-card';
+        card.id = `card-${host.name.replace(/\./g, '-')}`;
+        card.innerHTML = `
+            <div class="host-info">
+                <h3>${host.name}</h3>
+                <span class="status-badge" id="status-${host.name.replace(/\./g, '-')}">VERIFICANDO...</span>
+            </div>
+            <div class="host-icon">NODE</div>
+        `;
+        grid.appendChild(card);
+        eel.check_ping(host.name);
+    });
+}
+
+eel.expose(updateHostStatus);
+function updateHostStatus(hostname, isOnline) {
+    const cardId = `card-${hostname.replace(/\./g, '-')}`;
+    const badgeId = `status-${hostname.replace(/\./g, '-')}`;
+    const card = document.getElementById(cardId);
+    const badge = document.getElementById(badgeId);
+    if (card && badge) {
+        if (isOnline) {
+            badge.innerText = 'ONLINE';
+            badge.className = 'status-badge online';
+            card.style.borderLeft = '4px solid var(--online-color)';
+        } else {
+            badge.innerText = 'OFFLINE';
+            badge.className = 'status-badge offline';
+            card.style.borderLeft = '4px solid var(--offline-color)';
+        }
+        updateCounters();
+    }
+}
+
+function updateCounters() {
+    const online = document.querySelectorAll('.status-badge.online').length;
+    const offline = document.querySelectorAll('.status-badge.offline').length;
+    document.getElementById('count-online').innerText = online;
+    document.getElementById('count-offline').innerText = offline;
+}
+
+async function saveGroup() {
+    const name = document.getElementById('group-name').value.trim();
+    const hosts = document.getElementById('group-hosts').value.trim();
+    if (!name || !hosts) return writeLog('Preencha todos os campos!', 'error');
+    await eel.save_group(name, hosts)();
+    writeLog(`Grupo ${name} salvo com sucesso!`, 'success');
+    document.getElementById('group-name').value = '';
+    document.getElementById('group-hosts').value = '';
+    await loadGroups();
+    refreshStatus();
+}
+
+async function loadGroups() {
+    const groups = await eel.get_groups()();
+    renderGroups(groups || {});
+}
+
+function renderGroups(groups) {
+    const container = document.getElementById('group-list');
+    if (!container) {
+        return;
+    }
+
+    const entries = Object.entries(groups);
+    container.innerHTML = '';
+
+    if (entries.length === 0) {
+        container.innerHTML = '<div class="empty-state">Nenhum grupo cadastrado ainda.</div>';
+        return;
+    }
+
+    const list = document.createElement('div');
+    list.className = 'group-list-grid';
+
+    entries
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .forEach(([groupName, hosts]) => {
+            const item = document.createElement('div');
+            item.className = 'group-item-card';
+            const normalizedHosts = Array.isArray(hosts) ? hosts : [];
+            item.innerHTML = `
+                <div class="group-item-header">
+                    <div>
+                        <div class="group-item-title">${escapeHtml(groupName)}</div>
+                        <div class="group-item-count">${normalizedHosts.length} host(s)</div>
+                    </div>
+                    <button class="btn-secondary small-btn danger-outline-btn" onclick="deleteGroup('${escapeJs(groupName)}')">Remover</button>
+                </div>
+                <div class="group-item-hosts">${normalizedHosts.map(host => `<span class="host-chip">${escapeHtml(host)}</span>`).join('')}</div>
+            `;
+            list.appendChild(item);
+        });
+
+    container.appendChild(list);
+}
+
+async function deleteGroup(name) {
+    if (!confirm(`Deseja remover o grupo ${name}?`)) {
+        return;
+    }
+
+    const result = await eel.delete_group(name)();
+    if (result.status === 'ok') {
+        writeLog(result.message, 'success');
+        await loadGroups();
+        refreshStatus();
+    } else {
+        writeLog(result.message, 'error');
+    }
+}
+
+let inventoryData = [];
+async function runInventory() {
+    const target = document.getElementById('inv-target').value;
+    if (!target) return writeLog('Defina um alvo!', 'error');
+    document.getElementById('inventory-results').innerHTML = '';
+    inventoryData = [];
+    await eel.run_task('inventory', target)();
+}
+
+eel.expose(updateInventoryResult);
+function updateInventoryResult(host, model) {
+    const res = document.getElementById('inventory-results');
+    const entry = document.createElement('div');
+    entry.className = 'glass-card result-row';
+    entry.innerHTML = `<span style="font-weight: bold;">${host}:</span> <span style="color: var(--accent-color);">${model}</span>`;
+    res.appendChild(entry);
+    inventoryData.push(`${host}: ${model}`);
+}
+
+function exportInventory() {
+    if (inventoryData.length === 0) return alert('Nada para exportar!');
+    const text = inventoryData.join('\n');
+    const blob = new Blob([text], { type: 'text/plain' });
+    const anchor = document.createElement('a');
+    anchor.href = URL.createObjectURL(blob);
+    anchor.download = 'inventario_nexus.txt';
+    anchor.click();
+}
+
+async function runTransfer() {
+    const target = document.getElementById('tra-target').value;
+    const local = document.getElementById('tra-local').value;
+    const remote = document.getElementById('tra-remote').value;
+    if (!target || !local || !remote) return writeLog('Preencha todos os campos!', 'error');
+    await eel.run_task('transfer', target, local, remote)();
+}
+
+async function runShutdown() {
+    const target = document.getElementById('shu-target').value;
+    if (!target) return writeLog('Defina um alvo!', 'error');
+    if (confirm(`Deseja realmente desligar o alvo: ${target}?`)) {
+        await eel.run_task('shutdown', target)();
+    }
+}
+
+async function addSchedule() {
+    const type = document.getElementById('age-type').value;
+    const target = document.getElementById('age-target').value;
+    const time = document.getElementById('age-time').value;
+    if (!target || !time) return writeLog('Preencha todos os campos!', 'error');
+    await eel.add_schedule(type, target, time)();
+    writeLog(`Tarefa agendada: ${type} em ${time}`, 'info');
+}
+
+async function refreshStoreDashboard() {
+    const stores = await eel.get_all_lojas_action()();
+    searchState.allStores = stores;
+    updateStoreCount(stores.length);
+    renderStoreAdminList(stores);
+}
+
+async function searchLojasLookup() {
+    const query = document.getElementById('lookup-query').value.trim();
+    if (!query) {
+        displayLookupResults(searchState.lookupStores);
+        return;
+    }
+    const results = await eel.search_lojas(query)();
+    displayLookupResults(results);
+}
+
+async function loadLookupStores() {
+    const stores = await eel.get_all_lojas_action()();
+    searchState.lookupStores = stores;
+    displayLookupResults(stores);
+    updateStoreCount(stores.length);
+}
+
+function updateStoreCount(total) {
+    document.getElementById('store-count').innerText = total;
+    const badge = document.getElementById('registered-stores-badge');
+    if (badge) {
+        badge.innerText = total;
+    }
+}
+
+function renderStoreAdminList(stores) {
+    const container = document.getElementById('store-admin-results');
+    if (!container) {
+        return;
+    }
+
+    container.innerHTML = '';
+    if (!stores || stores.length === 0) {
+        container.innerHTML = '<div class="empty-state">Nenhuma loja cadastrada.</div>';
+        return;
+    }
+
+    const table = document.createElement('div');
+    table.className = 'store-table';
+    table.innerHTML = `
+        <div class="store-row store-head">
+            <span>ID</span>
+            <span>Nome</span>
+            <span>IP</span>
+            <span>Acoes</span>
+        </div>
+    `;
+
+    stores.forEach(loja => {
+        const row = document.createElement('div');
+        row.className = 'store-row';
+        row.innerHTML = `
+            <span>${escapeHtml(loja.id)}</span>
+            <span>${escapeHtml(loja.nome)}</span>
+            <span>${escapeHtml(loja.ip)}</span>
+            <span class="action-group">
+                <button class="btn-secondary small-btn" onclick="editLoja('${escapeJs(loja.id)}', '${escapeJs(loja.nome)}', '${escapeJs(loja.ip)}')">Editar</button>
+                <button class="btn-secondary small-btn danger-outline-btn" onclick="deleteLoja('${escapeJs(loja.id)}')">Excluir</button>
+            </span>
+        `;
+        table.appendChild(row);
+    });
+
+    container.appendChild(table);
+}
+
+async function editLoja(id, nome, ip) {
+    const newId = prompt('Editar ID da loja:', id);
+    if (newId === null) return;
+    const normalizedId = newId.trim();
+
+    const newNome = prompt('Editar nome da loja:', nome);
+    if (newNome === null) return;
+    const normalizedNome = newNome.trim();
+
+    const newIp = prompt('Editar IP da loja:', ip);
+    if (newIp === null) return;
+    const normalizedIp = newIp.trim();
+
+    if (!normalizedId || !normalizedNome || !normalizedIp) {
+        writeLog('ID, nome e IP sao obrigatorios para editar a loja.', 'error');
+        return;
+    }
+
+    const result = await eel.update_loja_action(id, normalizedId, normalizedNome, normalizedIp)();
+    writeLog(result.message, result.status === 'ok' ? 'success' : 'error');
+    if (result.status === 'ok') {
+        await refreshStoreDashboard();
+        await loadLookupStores();
+    }
+}
+
+async function deleteStore(id_loja) {
+    if (confirm(`Deseja realmente excluir a loja ${id_loja}?`)) {
+        const success = await eel.delete_loja(id_loja)();
+        
+        if (success) {
+            writeLog(`Loja ${id_loja} excluída com sucesso.`, 'success');
+            
+            // Estas duas linhas fazem a mágica de atualizar a tela na hora:
+            await loadLookupStores();    // Atualiza a aba de busca
+            await refreshStoreDashboard(); // Atualiza a aba principal de lojas
+        } else {
+            writeLog(`Erro ao excluir a loja ${id_loja}.`, 'error');
+        }
+    }
+}
+
+// --- RENDERIZAÇÃO DA TABELA (COM BOTÃO DE EXCLUIR) ---
+function renderStoreTable(stores, containerId) {
+    const container = document.getElementById(containerId);
+    if (!stores || stores.length === 0) {
+        container.innerHTML = '<div class="empty-state">Nenhuma loja encontrada.</div>';
+        return;
+    }
+
+    let html = `
+        <table class="win-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nome</th>
+                    <th>IP</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    stores.forEach(loja => {
+        html += `
+            <tr>
+                <td>${escapeHtml(loja.id)}</td>
+                <td>${escapeHtml(loja.nome)}</td>
+                <td><code>${escapeHtml(loja.ip)}</code></td>
+                <td>
+                    <button class="btn-small" onclick="pingLoja('${loja.ip}')">Ping</button>
+                    <button class="btn-small danger-outline-btn" onclick="deleteStore('${loja.id}')">Excluir</button>
+                </td>
+            </tr>
+        `;
+    });
+
+    html += `</tbody></table>`;
+    container.innerHTML = html;
+    container.classList.remove('empty-state');
+}
+
+function displayLookupResults(results) {
+    const container = document.getElementById('lookup-results');
+    container.innerHTML = '';
+
+    if (!results || results.length === 0) {
+        container.innerHTML = '<div class="empty-state">Nenhuma loja encontrada.</div>';
+        return;
+    }
+
+    const grid = document.createElement('div');
+    grid.className = 'lookup-grid';
+
+    results.forEach(loja => {
+        const card = document.createElement('div');
+        card.className = 'lookup-card';
+        card.innerHTML = `
+            <div class="lookup-title">${escapeHtml(loja.id)} - ${escapeHtml(loja.nome)}</div>
+            <div class="lookup-ip-highlight">${escapeHtml(loja.ip)}</div>
+            <div class="lookup-meta">IP principal da loja</div>
+            <div class="lookup-actions">
+                <button class="btn-secondary small-btn" onclick="copyToClipboard('${escapeJs(loja.ip)}')">Copiar IP</button>
+                <button class="btn-secondary small-btn success-btn" onclick="pingLoja('${escapeJs(loja.ip)}')">Ping</button>
+                <button class="btn-secondary small-btn" onclick="runInventoryDirect('${escapeJs(loja.ip)}')">Inventario</button>
+            </div>
+        `;
+        grid.appendChild(card);
+    });
+
+    container.appendChild(grid);
+}
+
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text);
+    writeLog(`IP copiado: ${text}`, 'success');
+}
+
+async function triggerCsvImport() {
+    setLoadingState(true, 'Abrindo seletor de arquivo...', 18);
+    resetCsvPreview();
+
+    try {
+        const result = await eel.select_csv_file_action()();
+
+        if (!result || result.status === 'cancelled') {
+            setLoadingState(false, 'Selecao de arquivo cancelada.');
+            return;
+        }
+
+        updateCsvFileSummary(`Arquivo carregado: ${result.file_name || 'CSV selecionado'}`);
+
+        if (result.status !== 'ok') {
+            setLoadingState(false, 'Falha na validacao do CSV.');
+            writeLog(result.message || 'Nao foi possivel abrir o arquivo CSV.', 'error');
+            return;
+        }
+
+        searchState.pendingImport = result.ready || [];
+        renderCsvPreview(result.ready || [], result.rejected || []);
+        setLoadingState(false, 'Analise concluida.');
+
+        if (result.ready && result.ready.length > 0) {
+            writeLog(`${result.ready.length} registro(s) pronto(s) para importar.`, 'success');
+        } else {
+            writeLog('Nenhum registro novo ficou pronto para importar.', 'info');
+        }
+
+        if (result.rejected && result.rejected.length > 0) {
+            writeLog(`${result.rejected.length} linha(s) foram rejeitadas na validacao.`, 'info');
+        }
+    } catch (error) {
+        updateCsvFileSummary('Nenhum arquivo CSV carregado.');
+        setLoadingState(false, 'Falha ao abrir o arquivo.');
+        writeLog(`Falha ao abrir o CSV: ${error.message}`, 'error');
+    }
+}
+
+
+function renderCsvPreview(ready, rejected) {
+    document.getElementById('preview-ready-count').innerText = ready.length;
+    document.getElementById('preview-rejected-count').innerText = rejected.length;
+    document.getElementById('preview-ready-badge').innerText = ready.length;
+    document.getElementById('preview-rejected-badge').innerText = rejected.length;
+    document.getElementById('confirm-import-btn').disabled = ready.length === 0;
+
+    const readyList = document.getElementById('preview-ready-list');
+    const rejectedList = document.getElementById('preview-rejected-list');
+
+    readyList.innerHTML = ready.length
+        ? ready.map(item => `
+            <div class="preview-row success">
+                <strong>Linha ${item.line}</strong>
+                <span>${escapeHtml(item.id)} | ${escapeHtml(item.nome)} | ${escapeHtml(item.ip)}</span>
+            </div>
+        `).join('')
+        : '<div class="empty-state">Nenhum registro apto para importacao.</div>';
+
+    rejectedList.innerHTML = rejected.length
+        ? rejected.map(item => `
+            <div class="preview-row danger">
+                <strong>Linha ${item.line}</strong>
+                <span>${escapeHtml(item.reason)}</span>
+                <small>${escapeHtml(`${item.values.id || '-'} | ${item.values.nome || '-'} | ${item.values.ip || '-'}`)}</small>
+            </div>
+        `).join('')
+        : '<div class="empty-state">Nenhuma linha rejeitada.</div>';
+}
+
+function resetCsvPreview() {
+    searchState.pendingImport = [];
+    renderCsvPreview([], []);
+}
+
+async function confirmCsvImport() {
+    if (!searchState.pendingImport.length) {
+        writeLog('Nenhum registro validado para importar.', 'error');
+        return;
+    }
+
+    setLoadingState(true, 'Importando registros para a base...', 72);
+
+    try {
+        const result = await eel.import_selected_csv_action()();
+        writeLog(result.message, result.status === 'ok' ? 'success' : 'error');
+
+        if (result.rejected && result.rejected.length) {
+            writeLog(`${result.rejected.length} registro(s) nao foram importados por duplicidade no banco.`, 'info');
+        }
+
+        if (result.status === 'ok') {
+            updateCsvFileSummary(`Arquivo importado: ${searchState.selectedCsvName || 'CSV selecionado'}`);
+            resetCsvPreview();
+            setLoadingState(false, 'Importacao concluida com sucesso.');
+            await refreshStoreDashboard();
+            await loadLookupStores();
+        } else {
+            setLoadingState(false, 'Importacao concluida com alerta.');
+        }
+    } catch (error) {
+        setLoadingState(false, 'Falha ao importar o arquivo.');
+        writeLog(`Falha ao confirmar importacao: ${error.message}`, 'error');
+    }
+}
+
+async function clearLojasBase() {
+    const total = Number(document.getElementById('store-count').innerText || '0');
+    if (!total) {
+        writeLog('Nao ha lojas cadastradas para excluir.', 'info');
+        return;
+    }
+
+    if (!confirm('Isso vai excluir toda a base de lojas cadastradas. Deseja continuar?')) {
+        return;
+    }
+
+    const confirmation = prompt('Para confirmar, digite EXCLUIR BASE');
+    if (confirmation !== 'EXCLUIR BASE') {
+        writeLog('Exclusao cancelada. Confirmacao invalida.', 'error');
+        return;
+    }
+
+    setLoadingState(true, 'Excluindo base cadastrada...', 64);
+    const result = await eel.clear_lojas_action()();
+    writeLog(result.message, result.status === 'ok' ? 'success' : 'error');
+    if (result.status === 'ok') {
+        resetCsvPreview();
+        updateCsvFileSummary('Nenhum arquivo CSV carregado.');
+        setLoadingState(false, 'Base excluida com sucesso.');
+        await refreshStoreDashboard();
+        await loadLookupStores();
+    } else {
+        setLoadingState(false, 'Falha ao excluir a base.');
+    }
+}
+
+function downloadCsvTemplate() {
+    const template = 'ID,Nome,IP\n001,Loja Centro,192.168.0.10\n002,Loja Norte,192.168.0.11';
+    const blob = new Blob([template], { type: 'text/csv;charset=utf-8;' });
+    const anchor = document.createElement('a');
+    anchor.href = URL.createObjectURL(blob);
+    anchor.download = 'modelo_lojas_nexus.csv';
+    anchor.click();
+    writeLog('Modelo de CSV baixado com sucesso.', 'success');
+}
+
+function pingLoja(ip) {
+    writeLog(`Fazendo ping em ${ip}...`, 'info');
+    eel.check_ping(ip);
+}
+
+async function runInventoryDirect(ip) {
+    writeLog(`Iniciando inventario em ${ip}...`, 'info');
+    await eel.run_task('inventory', ip)();
+}
+
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function escapeJs(value) {
+    return String(value ?? '')
+        .replace(/\\/g, '\\\\')
+        .replace(/'/g, "\\'");
+}
+
+window.onload = async () => {
+    refreshStatus();
+    resetCsvPreview();
+    updateCsvFileSummary('Nenhum arquivo CSV carregado.');
+    await loadGroups();
+    await refreshStoreDashboard();
+    await loadLookupStores();
+};

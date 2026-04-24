@@ -1,0 +1,99 @@
+import sqlite3
+import os
+
+user_desktop = os.path.join(os.path.expanduser("~"), "Desktop")
+db_directory = os.path.join(user_desktop, "nexus_db")
+os.makedirs(db_directory, exist_ok=True)
+db_path = os.path.join(db_directory, "nexus_hub.db")
+
+def init_db():
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS lojas (
+            id_loja TEXT PRIMARY KEY,
+            nome_loja TEXT NOT NULL,
+            ip_loja TEXT NOT NULL UNIQUE
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+def add_loja(id_loja, nome_loja, ip_loja):
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    try:
+        cursor.execute("INSERT INTO lojas (id_loja, nome_loja, ip_loja) VALUES (?, ?, ?)", (id_loja, nome_loja, ip_loja))
+        conn.commit()
+        return True
+    except sqlite3.IntegrityError:
+        return False # id_loja or ip_loja already exists
+    finally:
+        conn.close()
+
+def get_loja(query):
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    normalized_query = (query or '').strip()
+    search_term = f'%{normalized_query}%'
+    cursor.execute(
+        """
+        SELECT id_loja, nome_loja, ip_loja
+        FROM lojas
+        WHERE id_loja LIKE ?
+           OR nome_loja LIKE ?
+           OR ip_loja LIKE ?
+        ORDER BY id_loja ASC
+        """,
+        (search_term, search_term, search_term)
+    )
+    results = cursor.fetchall()
+    conn.close()
+    return results
+
+def get_all_lojas():
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    cursor.execute("SELECT id_loja, nome_loja, ip_loja FROM lojas")
+    results = cursor.fetchall()
+    conn.close()
+    return results
+
+# Initialize the database when the module is imported
+init_db()
+
+
+def clear_lojas():
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    cursor.execute('DELETE FROM lojas')
+    deleted = cursor.rowcount
+    conn.commit()
+    conn.close()
+    return deleted
+
+
+def update_loja(original_id, id_loja, nome_loja, ip_loja):
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "UPDATE lojas SET id_loja = ?, nome_loja = ?, ip_loja = ? WHERE id_loja = ?",
+            (id_loja, nome_loja, ip_loja, original_id)
+        )
+        conn.commit()
+        return cursor.rowcount > 0
+    except sqlite3.IntegrityError:
+        return False
+    finally:
+        conn.close()
+
+
+def delete_loja(id_loja):
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM lojas WHERE id_loja = ?", (id_loja,))
+    deleted = cursor.rowcount
+    conn.commit()
+    conn.close()
+    return deleted > 0
